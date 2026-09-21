@@ -25,7 +25,7 @@ export default function App() {
   const [statuses, setStatuses] = useState({})
   const [comments, setComments] = useState(sampleComments)
   const [verifiedUsers, setVerifiedUsers] = useState({ 'horde-teamet': true })
-  const [onlineCount, setOnlineCount] = useState(1)
+  const [onlineCount, setOnlineCount] = useState(null)
   const [confirmedFacts, setConfirmedFacts] = useState([])
   const [user, setUser] = useState(null)
   const [loginOpen, setLoginOpen] = useState(false)
@@ -46,32 +46,48 @@ export default function App() {
   useEffect(() => {
     if (!firebaseReady || !user) return
     const presenceRef = doc(db, 'presence', user.uid)
+    let lastSeenValues = []
+    const recount = () => {
+      const activeAfter = Date.now() - 60000
+      const active = lastSeenValues.filter((timestamp) => timestamp >= activeAfter).length
+      setOnlineCount(active)
+    }
     const pulse = () => setDoc(presenceRef, {
       lastSeen: serverTimestamp(),
       role: isAdmin ? 'admin' : 'guest',
-    }, { merge: true }).catch(() => {})
+    }, { merge: true }).catch((error) => {
+      console.error('[presence] Firestore avviste heartbeat:', error.code)
+      setOnlineCount(null)
+    })
+    const leave = () => deleteDoc(presenceRef).catch(() => {})
 
     pulse()
-    const interval = window.setInterval(pulse, 30000)
+    const heartbeatInterval = window.setInterval(pulse, 20000)
+    const countInterval = window.setInterval(recount, 5000)
     const unsubscribe = onSnapshot(collection(db, 'presence'), (snapshot) => {
-      const activeAfter = Date.now() - 90000
-      const active = snapshot.docs.filter((item) => {
-        const timestamp = item.data().lastSeen
-        return timestamp?.toMillis?.() >= activeAfter
-      }).length
-      setOnlineCount(Math.max(1, active))
-    }, () => setOnlineCount(1))
+      lastSeenValues = snapshot.docs
+        .map((item) => item.data().lastSeen?.toMillis?.())
+        .filter(Boolean)
+      recount()
+    }, (error) => {
+      console.error('[presence] Firestore avviste tilstedeværelseslytting:', error.code)
+      setOnlineCount(null)
+    })
 
     const handleVisibility = () => {
       if (document.visibilityState === 'visible') pulse()
+      else leave()
     }
     document.addEventListener('visibilitychange', handleVisibility)
+    window.addEventListener('pagehide', leave)
 
     return () => {
-      window.clearInterval(interval)
+      window.clearInterval(heartbeatInterval)
+      window.clearInterval(countInterval)
       document.removeEventListener('visibilitychange', handleVisibility)
+      window.removeEventListener('pagehide', leave)
       unsubscribe()
-      deleteDoc(presenceRef).catch(() => {})
+      leave()
     }
   }, [user, isAdmin])
 
@@ -87,7 +103,10 @@ export default function App() {
     }
     const unsubAuth = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser)
-      if (!currentUser) signInAnonymously(auth).catch(() => {})
+      if (!currentUser) signInAnonymously(auth).catch((error) => {
+        console.error('[presence] Anonymous Authentication er ikke tilgjengelig:', error.code)
+        setOnlineCount(null)
+      })
     })
     const unsubStatuses = onSnapshot(collection(db, 'mapStatuses'), (snapshot) => {
       const next = {}; snapshot.forEach((item) => { next[item.id] = item.data() }); setStatuses(next)
@@ -212,6 +231,7 @@ export default function App() {
   const login = async (email, password) => {
     setLoginError('')
     try {
+      if (auth.currentUser) await deleteDoc(doc(db, 'presence', auth.currentUser.uid)).catch(() => {})
       const result = await signInWithEmailAndPassword(auth, email, password)
       if (!adminUid || result.user.uid !== adminUid) {
         await signOut(auth)
@@ -226,6 +246,11 @@ export default function App() {
         setLoginError('Feil e-post eller passord. Prøv igjen.')
       }
     }
+  }
+
+  const logout = async () => {
+    if (auth.currentUser) await deleteDoc(doc(db, 'presence', auth.currentUser.uid)).catch(() => {})
+    await signOut(auth)
   }
 
   const selectPlace = (item) => {
@@ -243,8 +268,8 @@ export default function App() {
           <a href="#kart" onClick={() => setMobileNav(false)}>Kartet</a><a href="#bekreftet" onClick={() => setMobileNav(false)}>Bekreftet</a><a href="#fellesskap" onClick={() => setMobileNav(false)}>Kommentarfelt</a>
         </nav>
         <div className="header-actions">
-          <div className="online-pill" title="Aktive de siste 90 sekundene"><i /><UsersRound size={14} /><strong>{onlineCount}</strong><span>på nett</span></div>
-          {isAdmin ? <button className="admin-button active" onClick={() => signOut(auth)}><ShieldCheck size={15} /> Admin <LogOut size={14} /></button> : <button className="admin-button" onClick={() => setLoginOpen(true)}><LockKeyhole size={14} /> Admin</button>}
+          <div className={`online-pill ${onlineCount === null ? 'connecting' : ''}`} title={onlineCount === null ? 'Kobler til live-telling…' : 'Aktive brukere på siden akkurat nå'}><i /><UsersRound size={14} /><strong>{onlineCount ?? '…'}</strong><span>på nett</span></div>
+          {isAdmin ? <button className="admin-button active" onClick={logout}><ShieldCheck size={15} /> Admin <LogOut size={14} /></button> : <button className="admin-button" onClick={() => setLoginOpen(true)}><LockKeyhole size={14} /> Admin</button>}
           <button className="menu-button" onClick={() => setMobileNav((v) => !v)} aria-label="Meny">{mobileNav ? <X /> : <Menu />}</button>
         </div>
       </header>
