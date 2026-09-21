@@ -30,4 +30,27 @@ Kartstatus kan leses av alle, men bare den valgte admin-UID-en kan skrive. Komme
 npm run build
 ```
 
+## Vercel
+
+Prosjektet er konfigurert som en Vite-app i `vercel.json`. Sett **Root Directory** til mappen som inneholder denne `package.json`-filen. Hvis Git-repositoriet inneholder `horde` som en undermappe, skal Root Directory være `horde`.
+
+Legg disse variablene inn under **Vercel → Project Settings → Environment Variables**:
+
+```dotenv
+VITE_FIREBASE_API_KEY=verdien-fra-env-local
+VITE_FIREBASE_AUTH_DOMAIN=verdien-fra-env-local
+VITE_FIREBASE_PROJECT_ID=verdien-fra-env-local
+VITE_FIREBASE_STORAGE_BUCKET=verdien-fra-env-local
+VITE_FIREBASE_MESSAGING_SENDER_ID=verdien-fra-env-local
+VITE_FIREBASE_APP_ID=verdien-fra-env-local
+VITE_FIREBASE_MEASUREMENT_ID=verdien-fra-env-local
+VITE_ADMIN_UID=verdien-fra-env-local
+```
+
+Velg **Production**, **Preview** og **Development** for hver variabel. `VITE_*`-variabler bygges inn i nettleserpakken av Vite og må derfor finnes før deploy-byggingen starter. Firebase-konfigurasjonen og bruker-UID-en er klientidentifikatorer, ikke serverhemmeligheter; sikkerheten håndheves av `firestore.rules`.
+
+Etter første deploy må produksjonsdomenet, for eksempel `ditt-prosjekt.vercel.app`, legges til under **Firebase Console → Authentication → Settings → Authorized domains**. Legg også til eventuelle egendefinerte domener. Firebase støtter ikke wildcard for alle tilfeldige preview-domener, så bruk et stabilt preview-/branch-domene dersom innlogging skal testes i previews.
+
+Når miljøvariabler endres i Vercel, må du opprette en ny deployment fordi Vite leser dem ved byggetid.
+
 Kartgrunnlaget er basert på Kartverkets data under CC BY 4.0, bearbeidet av [robhop/fylker-og-kommuner](https://github.com/robhop/fylker-og-kommuner).

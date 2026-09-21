@@ -191,8 +191,12 @@ export default function App() {
         return
       }
       setLoginOpen(false)
-    } catch {
-      setLoginError('Feil e-post eller passord. Prøv igjen.')
+    } catch (error) {
+      if (error?.code === 'auth/unauthorized-domain') {
+        setLoginError('Dette Vercel-domenet må legges til under Firebase Authentication → Authorized domains.')
+      } else {
+        setLoginError('Feil e-post eller passord. Prøv igjen.')
+      }
     }
   }
 
