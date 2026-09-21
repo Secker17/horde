@@ -2,7 +2,7 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     function isAdmin() {
-      return request.auth != null && request.auth.uid == "REPLACE_WITH_YOUR_ADMIN_UID";
+      return request.auth != null && request.auth.uid == "QxVrDWjUPSV6Z8MlDqaYsivC74V2";
     }
 
     match /mapStatuses/{areaId} {
@@ -29,6 +29,12 @@ service cloud.firestore {
     match /verifiedUsers/{userKey} {
       allow read: if true;
       allow write: if isAdmin();
+    }
+
+    match /presence/{userId} {
+      allow read: if true;
+      allow create, update, delete: if request.auth != null
+        && request.auth.uid == userId;
     }
   }
 }

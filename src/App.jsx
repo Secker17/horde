@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { onAuthStateChanged, signInAnonymously, signInWithEmailAndPassword, signOut } from 'firebase/auth'
-import { addDoc, collection, deleteDoc, doc, onSnapshot, orderBy, query, serverTimestamp, setDoc } from 'firebase/firestore'
-import { ChevronRight, Compass, LockKeyhole, LogOut, Map, Menu, Mountain, Search, ShieldCheck, X } from 'lucide-react'
+import { addDoc, collection, deleteDoc, doc, onSnapshot, orderBy, query, serverTimestamp, setDoc, writeBatch } from 'firebase/firestore'
+import { ChevronRight, Compass, LockKeyhole, LogOut, Map, Menu, Mountain, Search, ShieldCheck, UsersRound, X } from 'lucide-react'
 import NorwayMap from './NorwayMap'
 import Comments from './Comments'
 import LoginModal from './LoginModal'
@@ -24,11 +24,13 @@ export default function App() {
   const [statuses, setStatuses] = useState({})
   const [comments, setComments] = useState(sampleComments)
   const [verifiedUsers, setVerifiedUsers] = useState({ 'horde-teamet': true })
+  const [onlineCount, setOnlineCount] = useState(1)
   const [user, setUser] = useState(null)
   const [loginOpen, setLoginOpen] = useState(false)
   const [loginError, setLoginError] = useState('')
   const [search, setSearch] = useState('')
   const [mobileNav, setMobileNav] = useState(false)
+  const [mapError, setMapError] = useState('')
 
   const isAdmin = Boolean(user && adminUid && user.uid === adminUid)
 
@@ -38,6 +40,38 @@ export default function App() {
       fetch('/data/fylker.geojson').then((res) => res.json()),
     ]).then(([municipality, county]) => setMapData({ municipality, county }))
   }, [])
+
+  useEffect(() => {
+    if (!firebaseReady || !user) return
+    const presenceRef = doc(db, 'presence', user.uid)
+    const pulse = () => setDoc(presenceRef, {
+      lastSeen: serverTimestamp(),
+      role: isAdmin ? 'admin' : 'guest',
+    }, { merge: true }).catch(() => {})
+
+    pulse()
+    const interval = window.setInterval(pulse, 30000)
+    const unsubscribe = onSnapshot(collection(db, 'presence'), (snapshot) => {
+      const activeAfter = Date.now() - 90000
+      const active = snapshot.docs.filter((item) => {
+        const timestamp = item.data().lastSeen
+        return timestamp?.toMillis?.() >= activeAfter
+      }).length
+      setOnlineCount(Math.max(1, active))
+    }, () => setOnlineCount(1))
+
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') pulse()
+    }
+    document.addEventListener('visibilitychange', handleVisibility)
+
+    return () => {
+      window.clearInterval(interval)
+      document.removeEventListener('visibilitychange', handleVisibility)
+      unsubscribe()
+      deleteDoc(presenceRef).catch(() => {})
+    }
+  }, [user, isAdmin])
 
   useEffect(() => {
     if (!firebaseReady) {
@@ -86,8 +120,39 @@ export default function App() {
 
   const updateStatus = async (status) => {
     if (!selected || !isAdmin) return
-    await setDoc(doc(db, 'mapStatuses', selected.key), { status, name: selected.name, type: selected.type, updatedAt: serverTimestamp(), updatedBy: user.uid })
-    setSelected((current) => ({ ...current, status }))
+    setMapError('')
+    try {
+      const batch = writeBatch(db)
+      const targets = [{ key: selected.key, name: selected.name, type: selected.type }]
+
+      if (selected.type === 'county' && mapData.municipality) {
+        const countyCode = selected.id.padStart(2, '0')
+        mapData.municipality.features.forEach((feature) => {
+          const municipalityId = String(feature.properties.kommunenummer || feature.properties.id).padStart(4, '0')
+          if (municipalityId.startsWith(countyCode)) {
+            targets.push({
+              key: `municipality:${municipalityId}`,
+              name: feature.properties.kommunenavn || feature.properties.name,
+              type: 'municipality',
+            })
+          }
+        })
+      }
+
+      targets.forEach((target) => {
+        const statusRef = doc(db, 'mapStatuses', target.key)
+        if (status === 'none') {
+          batch.delete(statusRef)
+        } else {
+          batch.set(statusRef, { status, name: target.name, type: target.type, updatedAt: serverTimestamp(), updatedBy: user.uid })
+        }
+      })
+
+      await batch.commit()
+      setSelected((current) => ({ ...current, status }))
+    } catch {
+      setMapError('Firebase avviste endringen. Kontroller at de nye Firestore-reglene er publisert.')
+    }
   }
 
   const addComment = async (comment) => {
@@ -134,6 +199,7 @@ export default function App() {
   const selectPlace = (item) => {
     const key = `${item.type}:${item.id}`
     setSelected({ ...item, key, status: statuses[key]?.status || 'none' })
+    setMapError('')
     setSearch('')
   }
 
@@ -145,6 +211,7 @@ export default function App() {
           <a href="#kart" onClick={() => setMobileNav(false)}>Kartet</a><a href="#fellesskap" onClick={() => setMobileNav(false)}>Kommentarfelt</a>
         </nav>
         <div className="header-actions">
+          <div className="online-pill" title="Aktive de siste 90 sekundene"><i /><UsersRound size={14} /><strong>{onlineCount}</strong><span>på nett</span></div>
           {isAdmin ? <button className="admin-button active" onClick={() => signOut(auth)}><ShieldCheck size={15} /> Admin <LogOut size={14} /></button> : <button className="admin-button" onClick={() => setLoginOpen(true)}><LockKeyhole size={14} /> Admin</button>}
           <button className="menu-button" onClick={() => setMobileNav((v) => !v)} aria-label="Meny">{mobileNav ? <X /> : <Menu />}</button>
         </div>
@@ -180,7 +247,7 @@ export default function App() {
                 {selected ? (
                   <div className="selected-area">
                     <span className="eyebrow">VALGT {selected.type === 'county' ? 'FYLKE' : 'KOMMUNE'}</span><h3>{selected.name}</h3><div className={`current-status ${selected.status}`}><span />{selected.status === 'likely' ? 'Sannsynlig' : selected.status === 'unsure' ? 'Usikkert' : selected.status === 'unlikely' ? 'Lite sannsynlig' : 'Ikke vurdert'}</div>
-                    {isAdmin ? <div className="admin-editor"><small>ENDRE VURDERING</small>{STATUS.map((item) => <button key={item.id} onClick={() => updateStatus(item.id)} className={selected.status === item.id ? 'active' : ''}><span style={{ background: item.color }} /> <div><strong>{item.label}</strong><small>{item.note}</small></div>{selected.status === item.id && <ShieldCheck size={16} />}</button>)}</div> : <p className="selection-help">Bare administrator kan endre kartet. Har du et spor? Del det i kommentarfeltet under.</p>}
+                    {isAdmin ? <div className="admin-editor"><small>ENDRE VURDERING</small>{STATUS.map((item) => <button key={item.id} onClick={() => updateStatus(item.id)} className={selected.status === item.id ? 'active' : ''}><span style={{ background: item.color }} /> <div><strong>{item.label}</strong><small>{item.note}</small></div>{selected.status === item.id && <ShieldCheck size={16} />}</button>)}<button onClick={() => updateStatus('none')} className={selected.status === 'none' ? 'active' : ''}><span className="status-none-dot" /><div><strong>Ikke vurdert</strong><small>Fjern vurderingen</small></div>{selected.status === 'none' && <ShieldCheck size={16} />}</button>{selected.type === 'county' && <p className="county-sync-note">Endringen gjelder også alle kommunene i fylket.</p>}{mapError && <p className="map-error">{mapError}</p>}</div> : <p className="selection-help">Bare administrator kan endre kartet. Har du et spor? Del det i kommentarfeltet under.</p>}
                     <a href="#fellesskap" className="panel-link">Kommenter dette området <ChevronRight size={15} /></a>
                   </div>
                 ) : (

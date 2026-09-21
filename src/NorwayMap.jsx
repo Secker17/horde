@@ -24,6 +24,7 @@ export default function NorwayMap({ data, statuses, selected, onSelect, mode }) 
   const [zoom, setZoom] = useState(1)
   const [pan, setPan] = useState({ x: 0, y: 0 })
   const drag = useRef(null)
+  const suppressClick = useRef(false)
 
   const paths = useMemo(() => {
     if (!data) return []
@@ -51,17 +52,25 @@ export default function NorwayMap({ data, statuses, selected, onSelect, mode }) 
         role="img"
         aria-label={`Interaktivt kart over Norges ${mode === 'municipality' ? 'kommuner' : 'fylker'}`}
         onPointerDown={(event) => {
-          drag.current = { x: event.clientX, y: event.clientY, pan }
+          if (zoom === 1) return
+          drag.current = { x: event.clientX, y: event.clientY, pan, moved: false }
           event.currentTarget.setPointerCapture(event.pointerId)
         }}
         onPointerMove={(event) => {
           if (!drag.current || zoom === 1) return
+          const dx = event.clientX - drag.current.x
+          const dy = event.clientY - drag.current.y
+          if (Math.hypot(dx, dy) > 4) drag.current.moved = true
           setPan({
-            x: drag.current.pan.x + (event.clientX - drag.current.x) / zoom,
-            y: drag.current.pan.y + (event.clientY - drag.current.y) / zoom,
+            x: drag.current.pan.x + dx / zoom,
+            y: drag.current.pan.y + dy / zoom,
           })
         }}
-        onPointerUp={() => { drag.current = null }}
+        onPointerUp={(event) => {
+          suppressClick.current = Boolean(drag.current?.moved)
+          drag.current = null
+          if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId)
+        }}
       >
         <defs>
           <filter id="mapGlow"><feDropShadow dx="0" dy="8" stdDeviation="8" floodColor="#000" floodOpacity=".36" /></filter>
@@ -78,9 +87,19 @@ export default function NorwayMap({ data, statuses, selected, onSelect, mode }) 
                 fill={COLORS[status]}
                 className={`map-region ${isSelected ? 'selected' : ''}`}
                 onClick={(event) => {
-                  if (drag.current) return
+                  if (suppressClick.current) {
+                    suppressClick.current = false
+                    return
+                  }
                   event.stopPropagation()
                   onSelect({ key, id: item.id, name: item.name, type: mode, status })
+                }}
+                tabIndex="0"
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault()
+                    onSelect({ key, id: item.id, name: item.name, type: mode, status })
+                  }
                 }}
               >
                 <title>{item.name} — {status === 'none' ? 'Ikke vurdert' : status === 'likely' ? 'Sannsynlig' : status === 'unsure' ? 'Usikkert' : 'Lite sannsynlig'}</title>

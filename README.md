@@ -22,7 +22,7 @@ På Windows kan du kopiere miljøfilen med `Copy-Item .env.example .env`.
 6. Erstatt `REPLACE_WITH_YOUR_ADMIN_UID` i `firestore.rules` med samme UID.
 7. Publiser reglene med Firebase CLI: `firebase deploy --only firestore:rules`.
 
-Kartstatus kan leses av alle, men bare den valgte admin-UID-en kan skrive. Kommentarer oppdateres i sanntid. Gjester får en anonym Firebase-identitet, velger eget brukernavn og kan kommentere uten en vanlig konto. Administrator kan slette kommentarer og verifisere den anonyme identiteten bak et brukernavn. Når Firebase ikke er konfigurert, kjører kommentarfeltet automatisk i lokal demo-modus med `localStorage`; adminpålogging er da deaktivert.
+Kartstatus kan leses av alle, men bare den valgte admin-UID-en kan skrive. Kommentarer og antall brukere på nett oppdateres i sanntid. Gjester får en anonym Firebase-identitet, velger eget brukernavn og kan kommentere uten en vanlig konto. Administrator kan slette kommentarer og verifisere den anonyme identiteten bak et brukernavn. Når Firebase ikke er konfigurert, kjører kommentarfeltet automatisk i lokal demo-modus med `localStorage`; adminpålogging er da deaktivert.
 
 ## Bygg
 
