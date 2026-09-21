@@ -47,7 +47,7 @@ VITE_FIREBASE_MEASUREMENT_ID=verdien-fra-env-local
 VITE_ADMIN_UID=verdien-fra-env-local
 ```
 
-Velg **Production**, **Preview** og **Development** for hver variabel. `VITE_*`-variabler bygges inn i nettleserpakken av Vite og må derfor finnes før deploy-byggingen starter. Firebase-konfigurasjonen og bruker-UID-en er klientidentifikatorer, ikke serverhemmeligheter; sikkerheten håndheves av `firestore.rules`.
+Variablene er valgfrie overstyringer. Appen inneholder standardverdiene for dette Firebase-prosjektet, slik at Vercel også kan bygge uten dashboard-variabler. Hvis du legger dem til, velger du **Production**, **Preview** og **Development**. Firebase-konfigurasjonen og bruker-UID-en er offentlige klientidentifikatorer, ikke serverhemmeligheter; sikkerheten håndheves av `firestore.rules`.
 
 Etter første deploy må produksjonsdomenet, for eksempel `ditt-prosjekt.vercel.app`, legges til under **Firebase Console → Authentication → Settings → Authorized domains**. Legg også til eventuelle egendefinerte domener. Firebase støtter ikke wildcard for alle tilfeldige preview-domener, så bruk et stabilt preview-/branch-domene dersom innlogging skal testes i previews.
 
