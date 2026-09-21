@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { onAuthStateChanged, signInAnonymously, signInWithEmailAndPassword, signOut } from 'firebase/auth'
-import { addDoc, collection, deleteDoc, doc, getCountFromServer, onSnapshot, orderBy, query, serverTimestamp, setDoc, Timestamp, where, writeBatch } from 'firebase/firestore'
+import { addDoc, collection, deleteDoc, doc, getDocs, orderBy, query, serverTimestamp, setDoc, Timestamp, where, writeBatch } from 'firebase/firestore/lite'
 import { ChevronRight, Compass, Info, LockKeyhole, LogOut, Map, Menu, Mountain, Search, ShieldCheck, UsersRound, X } from 'lucide-react'
 import NorwayMap from './NorwayMap'
 import Comments from './Comments'
@@ -36,6 +36,36 @@ export default function App() {
 
   const isAdmin = Boolean(user && adminUid && user.uid === adminUid)
 
+  const loadFirestoreData = async () => {
+    const [statusSnapshot, commentSnapshot, verifiedSnapshot, confirmedSnapshot] = await Promise.all([
+      getDocs(collection(db, 'mapStatuses')),
+      getDocs(query(collection(db, 'comments'), orderBy('createdAt', 'desc'))),
+      getDocs(collection(db, 'verifiedUsers')),
+      getDocs(query(collection(db, 'confirmedFacts'), orderBy('createdAt', 'asc'))),
+    ])
+
+    const nextStatuses = {}
+    statusSnapshot.forEach((item) => { nextStatuses[item.id] = item.data() })
+    setStatuses(nextStatuses)
+
+    const nextComments = commentSnapshot.docs.map((item) => ({
+      id: item.id,
+      ...item.data(),
+      timeLabel: item.data().createdAt?.toDate?.().toLocaleDateString('nb-NO', { day: 'numeric', month: 'short' }) || 'Nå',
+    }))
+    setComments([...nextComments, ...sampleComments])
+
+    const nextVerified = { 'horde-teamet': true }
+    verifiedSnapshot.forEach((item) => { nextVerified[item.id] = true })
+    setVerifiedUsers(nextVerified)
+
+    const formatDate = (timestamp) => timestamp?.toDate?.().toLocaleString('nb-NO', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) || ''
+    setConfirmedFacts(confirmedSnapshot.docs.map((item) => {
+      const data = item.data()
+      return { id: item.id, ...data, createdLabel: formatDate(data.createdAt), updatedLabel: formatDate(data.updatedAt) }
+    }))
+  }
+
   useEffect(() => {
     Promise.all([
       fetch('/data/kommuner.geojson').then((res) => res.json()),
@@ -53,11 +83,11 @@ export default function App() {
       console.error('[presence] Firestore avviste heartbeat:', error.code)
       setOnlineCount(null)
     })
-    const recount = () => getCountFromServer(query(
+    const recount = () => getDocs(query(
       collection(db, 'presence'),
       where('lastSeen', '>=', Timestamp.fromMillis(Date.now() - 45 * 60 * 1000)),
     )).then((snapshot) => {
-      setOnlineCount(snapshot.data().count)
+      setOnlineCount(snapshot.size)
     }).catch((error) => {
       console.error('[presence] Firestore avviste telling:', error.code)
       setOnlineCount(null)
