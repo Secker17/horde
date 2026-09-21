@@ -26,7 +26,7 @@ export default function App() {
   const [comments, setComments] = useState(sampleComments)
   const [verifiedUsers, setVerifiedUsers] = useState({ 'horde-teamet': true })
   const [onlineCount, setOnlineCount] = useState(1)
-  const [confirmedInfo, setConfirmedInfo] = useState({ content: '', updatedLabel: '' })
+  const [confirmedFacts, setConfirmedFacts] = useState([])
   const [user, setUser] = useState(null)
   const [loginOpen, setLoginOpen] = useState(false)
   const [loginError, setLoginError] = useState('')
@@ -101,12 +101,12 @@ export default function App() {
       snapshot.forEach((item) => { next[item.id] = true })
       setVerifiedUsers(next)
     })
-    const unsubConfirmed = onSnapshot(doc(db, 'siteContent', 'confirmedInfo'), (snapshot) => {
-      const data = snapshot.data()
-      setConfirmedInfo({
-        content: data?.content || '',
-        updatedLabel: data?.updatedAt?.toDate?.().toLocaleString('nb-NO', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }) || '',
-      })
+    const unsubConfirmed = onSnapshot(query(collection(db, 'confirmedFacts'), orderBy('createdAt', 'asc')), (snapshot) => {
+      setConfirmedFacts(snapshot.docs.map((item) => {
+        const data = item.data()
+        const formatDate = (timestamp) => timestamp?.toDate?.().toLocaleString('nb-NO', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) || ''
+        return { id: item.id, ...data, createdLabel: formatDate(data.createdAt), updatedLabel: formatDate(data.updatedAt) }
+      }))
     })
     return () => { unsubAuth(); unsubStatuses(); unsubComments(); unsubVerified(); unsubConfirmed() }
   }, [])
@@ -190,13 +190,23 @@ export default function App() {
     }
   }
 
-  const saveConfirmedInfo = async (content) => {
+  const addConfirmedFact = async (content) => {
     if (!isAdmin) throw new Error('Unauthorized')
-    await setDoc(doc(db, 'siteContent', 'confirmedInfo'), {
+    await addDoc(collection(db, 'confirmedFacts'), {
       content,
-      updatedAt: serverTimestamp(),
-      updatedBy: user.uid,
+      createdAt: serverTimestamp(),
+      createdBy: user.uid,
     })
+  }
+
+  const updateConfirmedFact = async (id, content) => {
+    if (!isAdmin) throw new Error('Unauthorized')
+    await setDoc(doc(db, 'confirmedFacts', id), { content, updatedAt: serverTimestamp(), updatedBy: user.uid }, { merge: true })
+  }
+
+  const deleteConfirmedFact = async (id) => {
+    if (!isAdmin || !window.confirm('Vil du slette dette bekreftede punktet?')) return
+    await deleteDoc(doc(db, 'confirmedFacts', id))
   }
 
   const login = async (email, password) => {
@@ -281,7 +291,7 @@ export default function App() {
           </div>
         </section>
 
-        <ConfirmedInfo info={confirmedInfo} isAdmin={isAdmin} onSave={saveConfirmedInfo} />
+        <ConfirmedInfo facts={confirmedFacts} isAdmin={isAdmin} onAdd={addConfirmedFact} onUpdate={updateConfirmedFact} onDelete={deleteConfirmedFact} />
         <Comments comments={comments} selected={selected} onSubmit={addComment} isAdmin={isAdmin} verifiedUsers={verifiedUsers} onDelete={deleteComment} onToggleVerified={toggleVerified} />
       </main>
       <aside className="independent-notice" aria-label="Ansvarsfraskrivelse"><Info size={17} /><p><strong>Uavhengig fanprosjekt.</strong> Vi er ikke tilknyttet, godkjent av eller drevet av det offisielle selskapet bak Horde.</p></aside>
