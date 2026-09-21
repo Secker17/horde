@@ -10,7 +10,7 @@ const COLORS = {
 }
 
 // D3's spherical path renderer uses the opposite polygon winding convention
-// from standard GeoJSON. Flip every ring so Norway is rendered, not its inverse.
+// from standard GeoJSON. Flip every ring so Norway is rendered, not its inverse
 function forD3(feature) {
   const geometry = feature.geometry
   if (!geometry || !['Polygon', 'MultiPolygon'].includes(geometry.type)) return feature
