@@ -10,7 +10,12 @@ service cloud.firestore {
 
     match /admins/{adminUid} {
       allow read: if request.auth != null && (request.auth.uid == adminUid || isAdmin());
-      allow create, update, delete: if isAdmin();
+      allow create: if request.auth != null
+        && request.auth.uid == adminUid
+        && request.resource.data.role == 'admin';
+      allow update, delete: if request.auth != null && (
+        request.auth.uid == adminUid || isAdmin()
+      );
     }
 
     match /mapStatuses/{areaId} {
