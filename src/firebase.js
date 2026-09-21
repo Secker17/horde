@@ -4,13 +4,13 @@ import { getAuth } from 'firebase/auth'
 import { getFirestore } from 'firebase/firestore'
 
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || 'AIzaSyB-wPFAkn5eYf8lYB-0_kp9BWqp6lI8tsU',
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || 'horde-570cd.firebaseapp.com',
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || 'horde-570cd',
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || 'horde-570cd.firebasestorage.app',
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '429136143079',
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || '1:429136143079:web:cd05965776680090def842',
-  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || 'G-QQW2KQ0WX0',
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || 'AIzaSyAqtqQtGtbY-foEtjoEz7kj1m3sUnyzh_w',
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || 'hordejakten-ddb64.firebaseapp.com',
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || 'hordejakten-ddb64',
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || 'hordejakten-ddb64.firebasestorage.app',
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '152383190641',
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || '1:152383190641:web:a9404868b575b12da70dd0',
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || 'G-22F6SHL2FY',
 }
 
 export const firebaseReady = Boolean(firebaseConfig.apiKey && firebaseConfig.projectId)

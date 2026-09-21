@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { onAuthStateChanged, signInAnonymously, signInWithEmailAndPassword, signOut } from 'firebase/auth'
-import { addDoc, collection, deleteDoc, doc, onSnapshot, orderBy, query, serverTimestamp, setDoc, writeBatch } from 'firebase/firestore'
+import { addDoc, collection, deleteDoc, doc, getCountFromServer, onSnapshot, orderBy, query, serverTimestamp, setDoc, Timestamp, where, writeBatch } from 'firebase/firestore'
 import { ChevronRight, Compass, Info, LockKeyhole, LogOut, Map, Menu, Mountain, Search, ShieldCheck, UsersRound, X } from 'lucide-react'
 import NorwayMap from './NorwayMap'
 import Comments from './Comments'
@@ -46,12 +46,6 @@ export default function App() {
   useEffect(() => {
     if (!firebaseReady || !user) return
     const presenceRef = doc(db, 'presence', user.uid)
-    let lastSeenValues = []
-    const recount = () => {
-      const activeAfter = Date.now() - 60000
-      const active = lastSeenValues.filter((timestamp) => timestamp >= activeAfter).length
-      setOnlineCount(active)
-    }
     const pulse = () => setDoc(presenceRef, {
       lastSeen: serverTimestamp(),
       role: isAdmin ? 'admin' : 'guest',
@@ -59,34 +53,35 @@ export default function App() {
       console.error('[presence] Firestore avviste heartbeat:', error.code)
       setOnlineCount(null)
     })
-    const leave = () => deleteDoc(presenceRef).catch(() => {})
-
-    pulse()
-    const heartbeatInterval = window.setInterval(pulse, 20000)
-    const countInterval = window.setInterval(recount, 5000)
-    const unsubscribe = onSnapshot(collection(db, 'presence'), (snapshot) => {
-      lastSeenValues = snapshot.docs
-        .map((item) => item.data().lastSeen?.toMillis?.())
-        .filter(Boolean)
-      recount()
-    }, (error) => {
-      console.error('[presence] Firestore avviste tilstedeværelseslytting:', error.code)
+    const recount = () => getCountFromServer(query(
+      collection(db, 'presence'),
+      where('lastSeen', '>=', Timestamp.fromMillis(Date.now() - 45 * 60 * 1000)),
+    )).then((snapshot) => {
+      setOnlineCount(snapshot.data().count)
+    }).catch((error) => {
+      console.error('[presence] Firestore avviste telling:', error.code)
       setOnlineCount(null)
     })
+    const refreshPresence = async () => {
+      await pulse()
+      await recount()
+    }
+    const leave = () => deleteDoc(presenceRef).catch(() => {})
+
+    refreshPresence()
+    const presenceInterval = window.setInterval(refreshPresence, 30 * 60 * 1000)
 
     const handleVisibility = () => {
-      if (document.visibilityState === 'visible') pulse()
+      if (document.visibilityState === 'visible') refreshPresence()
       else leave()
     }
     document.addEventListener('visibilitychange', handleVisibility)
     window.addEventListener('pagehide', leave)
 
     return () => {
-      window.clearInterval(heartbeatInterval)
-      window.clearInterval(countInterval)
+      window.clearInterval(presenceInterval)
       document.removeEventListener('visibilitychange', handleVisibility)
       window.removeEventListener('pagehide', leave)
-      unsubscribe()
       leave()
     }
   }, [user, isAdmin])
