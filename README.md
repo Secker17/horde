@@ -16,11 +16,12 @@ På Windows kan du kopiere miljøfilen med `Copy-Item .env.example .env`.
 
 1. Opprett et prosjekt i Firebase Console.
 2. Aktiver både **Authentication → Email/Password** og **Authentication → Anonymous**. Opprett deretter én adminkonto med e-post og passord. Anonymous brukes automatisk for gjester og krever ingen synlig innlogging.
-3. Opprett en Firestore-database.
-4. Kopier web-appens Firebase-verdier inn i `.env`.
-5. Finn UID-en til adminkontoen under Authentication og sett den som `VITE_ADMIN_UID`.
-6. Erstatt `REPLACE_WITH_YOUR_ADMIN_UID` i `firestore.rules` med samme UID.
-7. Publiser reglene med Firebase CLI: `firebase deploy --only firestore:rules`.
+3. Finn UID-en til adminkontoen under Authentication og sett den som `VITE_ADMIN_UID` i `.env`.
+4. I Firestore, opprett en kollektion kalt `admins` og lag et dokument med ID som er samme UID som brukeren du vil gjøre til admin. Dette er den enkleste måten å gi flere brukere admin-tilgang uten å endre kode.
+5. Opprett en Firestore-database.
+6. Kopier web-appens Firebase-verdier inn i `.env`.
+7. Erstatt `REPLACE_WITH_YOUR_ADMIN_UID` i `firestore.rules` med samme UID.
+8. Publiser reglene med Firebase CLI: `firebase deploy --only firestore:rules`.
 
 Kartstatus kan leses av alle, men bare den valgte admin-UID-en kan skrive. Kommentarer og antall brukere på nett oppdateres i sanntid. Gjester får en anonym Firebase-identitet, velger eget brukernavn og kan kommentere uten en vanlig konto. Administrator kan slette kommentarer og verifisere den anonyme identiteten bak et brukernavn. Når Firebase ikke er konfigurert, kjører kommentarfeltet automatisk i lokal demo-modus med `localStorage`; adminpålogging er da deaktivert.
 

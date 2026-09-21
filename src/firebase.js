@@ -18,6 +18,10 @@ export const app = firebaseReady ? initializeApp(firebaseConfig) : null
 export const auth = app ? getAuth(app) : null
 export const db = app ? getFirestore(app) : null
 export const adminUid = import.meta.env.VITE_ADMIN_UID || 'QxVrDWjUPSV6Z8MlDqaYsivC74V2'
+export const adminUids = Array.from(new Set([
+  adminUid,
+  ...(import.meta.env.VITE_ADMIN_UIDS || '').split(',').map((value) => value.trim()).filter(Boolean),
+]))
 
 // Analytics is browser-only and may be unavailable when cookies are blocked.
 export const analyticsPromise = app && firebaseConfig.measurementId

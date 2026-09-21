@@ -33,8 +33,9 @@ export default function App() {
   const [search, setSearch] = useState('')
   const [mobileNav, setMobileNav] = useState(false)
   const [mapError, setMapError] = useState('')
+  const [adminIds, setAdminIds] = useState(new Set([adminUid].filter(Boolean)))
 
-  const isAdmin = Boolean(user && adminUid && user.uid === adminUid)
+  const isAdmin = Boolean(user && [...adminIds].includes(user.uid))
 
   const loadFirestoreData = async () => {
     const [statusSnapshot, commentSnapshot, verifiedSnapshot, confirmedSnapshot] = await Promise.all([
@@ -258,9 +259,10 @@ export default function App() {
     try {
       if (auth.currentUser) await deleteDoc(doc(db, 'presence', auth.currentUser.uid)).catch(() => {})
       const result = await signInWithEmailAndPassword(auth, email, password)
-      if (!adminUid || result.user.uid !== adminUid) {
+      const allowedAdmins = [...adminIds]
+      if (!allowedAdmins.includes(result.user.uid)) {
         await signOut(auth)
-        setLoginError('Denne kontoen har ikke admintilgang.')
+        setLoginError('Denne kontoen har ikke admintilgang. Opprett en admin-post i Firestore eller sett VITE_ADMIN_UID.')
         return
       }
       setLoginOpen(false)
@@ -284,6 +286,16 @@ export default function App() {
     setMapError('')
     setSearch('')
   }
+
+  useEffect(() => {
+    if (!firebaseReady || !db) return
+    const unsubAdmins = onSnapshot(collection(db, 'admins'), (snapshot) => {
+      const next = new Set([adminUid].filter(Boolean))
+      snapshot.forEach((item) => next.add(item.id))
+      setAdminIds(next)
+    })
+    return () => unsubAdmins()
+  }, [])
 
   return (
     <div className="app-shell">
