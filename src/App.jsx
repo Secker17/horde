@@ -35,7 +35,11 @@ export default function App() {
   const [mapError, setMapError] = useState('')
   const [adminIds, setAdminIds] = useState(new Set([adminUid].filter(Boolean)))
 
-  const isAdmin = Boolean(user && [...adminIds].includes(user.uid))
+  const isAdmin = Boolean(
+    user &&
+    !user.isAnonymous &&
+    user.providerData?.some((provider) => provider.providerId === 'password')
+  )
 
   const loadFirestoreData = async () => {
     const [statusSnapshot, commentSnapshot, verifiedSnapshot, confirmedSnapshot] = await Promise.all([
@@ -259,12 +263,10 @@ export default function App() {
     try {
       if (auth.currentUser) await deleteDoc(doc(db, 'presence', auth.currentUser.uid)).catch(() => {})
       const result = await signInWithEmailAndPassword(auth, email, password)
-      const isAllowedAdmin = Boolean(
-        adminUid && result.user.uid === adminUid,
-      ) || (await getDoc(doc(db, 'admins', result.user.uid))).exists()
+      const isAllowedAdmin = !result.user.isAnonymous && result.user.providerData?.some((provider) => provider.providerId === 'password')
       if (!isAllowedAdmin) {
         await signOut(auth)
-        setLoginError('Denne kontoen har ikke admintilgang. Opprett en admin-post i Firestore eller sett VITE_ADMIN_UID.')
+        setLoginError('Denne kontoen har ikke admintilgang. Logg inn med e-post og passord.')
         return
       }
       setLoginOpen(false)
