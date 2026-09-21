@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import { onAuthStateChanged, signInAnonymously, signInWithEmailAndPassword, signOut } from 'firebase/auth'
 import { addDoc, collection, deleteDoc, doc, onSnapshot, orderBy, query, serverTimestamp, setDoc, writeBatch } from 'firebase/firestore'
-import { ChevronRight, Compass, LockKeyhole, LogOut, Map, Menu, Mountain, Search, ShieldCheck, UsersRound, X } from 'lucide-react'
+import { ChevronRight, Compass, Info, LockKeyhole, LogOut, Map, Menu, Mountain, Search, ShieldCheck, UsersRound, X } from 'lucide-react'
 import NorwayMap from './NorwayMap'
 import Comments from './Comments'
+import ConfirmedInfo from './ConfirmedInfo'
 import LoginModal from './LoginModal'
 import { adminUid, auth, db, firebaseReady } from './firebase'
 
@@ -25,6 +26,7 @@ export default function App() {
   const [comments, setComments] = useState(sampleComments)
   const [verifiedUsers, setVerifiedUsers] = useState({ 'horde-teamet': true })
   const [onlineCount, setOnlineCount] = useState(1)
+  const [confirmedInfo, setConfirmedInfo] = useState({ content: '', updatedLabel: '' })
   const [user, setUser] = useState(null)
   const [loginOpen, setLoginOpen] = useState(false)
   const [loginError, setLoginError] = useState('')
@@ -99,7 +101,14 @@ export default function App() {
       snapshot.forEach((item) => { next[item.id] = true })
       setVerifiedUsers(next)
     })
-    return () => { unsubAuth(); unsubStatuses(); unsubComments(); unsubVerified() }
+    const unsubConfirmed = onSnapshot(doc(db, 'siteContent', 'confirmedInfo'), (snapshot) => {
+      const data = snapshot.data()
+      setConfirmedInfo({
+        content: data?.content || '',
+        updatedLabel: data?.updatedAt?.toDate?.().toLocaleString('nb-NO', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }) || '',
+      })
+    })
+    return () => { unsubAuth(); unsubStatuses(); unsubComments(); unsubVerified(); unsubConfirmed() }
   }, [])
 
   const allPlaces = useMemo(() => {
@@ -181,6 +190,15 @@ export default function App() {
     }
   }
 
+  const saveConfirmedInfo = async (content) => {
+    if (!isAdmin) throw new Error('Unauthorized')
+    await setDoc(doc(db, 'siteContent', 'confirmedInfo'), {
+      content,
+      updatedAt: serverTimestamp(),
+      updatedBy: user.uid,
+    })
+  }
+
   const login = async (email, password) => {
     setLoginError('')
     try {
@@ -212,7 +230,7 @@ export default function App() {
       <header className="site-header">
         <a className="brand" href="#top" aria-label="Hordejakten hjem"><div className="brand-mark"><Mountain size={22} /></div><div><strong>HORDE</strong><span>JAKTEN</span></div></a>
         <nav className={mobileNav ? 'open' : ''}>
-          <a href="#kart" onClick={() => setMobileNav(false)}>Kartet</a><a href="#fellesskap" onClick={() => setMobileNav(false)}>Kommentarfelt</a>
+          <a href="#kart" onClick={() => setMobileNav(false)}>Kartet</a><a href="#bekreftet" onClick={() => setMobileNav(false)}>Bekreftet</a><a href="#fellesskap" onClick={() => setMobileNav(false)}>Kommentarfelt</a>
         </nav>
         <div className="header-actions">
           <div className="online-pill" title="Aktive de siste 90 sekundene"><i /><UsersRound size={14} /><strong>{onlineCount}</strong><span>på nett</span></div>
@@ -263,8 +281,10 @@ export default function App() {
           </div>
         </section>
 
+        <ConfirmedInfo info={confirmedInfo} isAdmin={isAdmin} onSave={saveConfirmedInfo} />
         <Comments comments={comments} selected={selected} onSubmit={addComment} isAdmin={isAdmin} verifiedUsers={verifiedUsers} onDelete={deleteComment} onToggleVerified={toggleVerified} />
       </main>
+      <aside className="independent-notice" aria-label="Ansvarsfraskrivelse"><Info size={17} /><p><strong>Uavhengig fanprosjekt.</strong> Vi er ikke tilknyttet, godkjent av eller drevet av det offisielle selskapet bak Horde.</p></aside>
       <footer><a className="brand" href="#top"><div className="brand-mark"><Mountain size={20} /></div><div><strong>HORDE</strong><span>JAKTEN</span></div></a><p>Laget for jegere, av jegere.</p><span>© {new Date().getFullYear()} Hordejakten</span></footer>
       <LoginModal open={loginOpen} onClose={() => setLoginOpen(false)} onLogin={login} error={loginError} configured={firebaseReady} />
     </div>

@@ -36,5 +36,10 @@ service cloud.firestore {
       allow create, update, delete: if request.auth != null
         && request.auth.uid == userId;
     }
+
+    match /siteContent/{documentId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
   }
 }
