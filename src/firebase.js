@@ -1,7 +1,7 @@
 import { initializeApp } from 'firebase/app'
 import { getAnalytics, isSupported } from 'firebase/analytics'
 import { getAuth } from 'firebase/auth'
-import { getFirestore } from 'firebase/firestore'
+import { initializeFirestore } from 'firebase/firestore'
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY || 'AIzaSyAqtqQtGtbY-foEtjoEz7kj1m3sUnyzh_w',
@@ -16,7 +16,7 @@ const firebaseConfig = {
 export const firebaseReady = Boolean(firebaseConfig.apiKey && firebaseConfig.projectId)
 export const app = firebaseReady ? initializeApp(firebaseConfig) : null
 export const auth = app ? getAuth(app) : null
-export const db = app ? getFirestore(app) : null
+export const db = app ? initializeFirestore(app, { experimentalForceLongPolling: true }) : null
 export const adminUid = import.meta.env.VITE_ADMIN_UID || 'QxVrDWjUPSV6Z8MlDqaYsivC74V2'
 
 // Analytics is browser-only and may be unavailable when cookies are blocked.
