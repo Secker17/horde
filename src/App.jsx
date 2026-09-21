@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { onAuthStateChanged, signInAnonymously, signInWithEmailAndPassword, signOut } from 'firebase/auth'
-import { addDoc, collection, deleteDoc, doc, getDocs, orderBy, query, serverTimestamp, setDoc, Timestamp, where, writeBatch } from 'firebase/firestore/lite'
+import { addDoc, collection, deleteDoc, doc, getDocs, onSnapshot, orderBy, query, serverTimestamp, setDoc, Timestamp, where, writeBatch } from 'firebase/firestore'
 import { ChevronRight, Compass, Info, LockKeyhole, LogOut, Map, Menu, Mountain, Search, ShieldCheck, UsersRound, X } from 'lucide-react'
 import NorwayMap from './NorwayMap'
 import Comments from './Comments'
@@ -117,7 +117,7 @@ export default function App() {
   }, [user, isAdmin])
 
   useEffect(() => {
-    if (!firebaseReady) {
+    if (!firebaseReady || !db || !auth) {
       const syncLocalComments = () => {
         const stored = JSON.parse(localStorage.getItem('horde-comments') || '[]')
         setComments([...stored, ...sampleComments])
