@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { onAuthStateChanged, signInAnonymously, signInWithEmailAndPassword, signOut } from 'firebase/auth'
-import { addDoc, collection, deleteDoc, doc, getDocs, onSnapshot, orderBy, query, serverTimestamp, setDoc, Timestamp, where, writeBatch } from 'firebase/firestore'
+import { addDoc, collection, deleteDoc, doc, getDoc, getDocs, onSnapshot, orderBy, query, serverTimestamp, setDoc, Timestamp, where, writeBatch } from 'firebase/firestore'
 import { ChevronRight, Compass, Info, LockKeyhole, LogOut, Map, Menu, Mountain, Search, ShieldCheck, UsersRound, X } from 'lucide-react'
 import NorwayMap from './NorwayMap'
 import Comments from './Comments'
@@ -259,8 +259,10 @@ export default function App() {
     try {
       if (auth.currentUser) await deleteDoc(doc(db, 'presence', auth.currentUser.uid)).catch(() => {})
       const result = await signInWithEmailAndPassword(auth, email, password)
-      const allowedAdmins = [...adminIds]
-      if (!allowedAdmins.includes(result.user.uid)) {
+      const isAllowedAdmin = Boolean(
+        adminUid && result.user.uid === adminUid,
+      ) || (await getDoc(doc(db, 'admins', result.user.uid))).exists()
+      if (!isAllowedAdmin) {
         await signOut(auth)
         setLoginError('Denne kontoen har ikke admintilgang. Opprett en admin-post i Firestore eller sett VITE_ADMIN_UID.')
         return
