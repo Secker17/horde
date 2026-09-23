@@ -11,3 +11,18 @@
 .admin-editor button.status-option-excluded.active > svg {
   color: #ef6868;
 }
+
+.map-disclaimer {
+  display: block;
+  margin-top: 14px;
+  padding: 11px 13px;
+  border-left: 2px solid rgba(217, 155, 67, 0.65);
+  background: rgba(217, 155, 67, 0.06);
+  color: #839087;
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.map-disclaimer strong {
+  color: #c7a66c;
+}

@@ -335,7 +335,10 @@ export default function App() {
         <section className="map-section" id="kart">
           <div className="section-head">
             <div><div className="section-kicker"><Map size={16} /> LEVENDE SPORKART</div><h2>Hele Norge.<br /><em>Én løsning.</em></h2></div>
-            <p>Velg et område for å se vurderingen. Kartet oppdateres av administrator etter hvert som nye spor dukker opp.</p>
+            <p>
+              Velg et område for å se vurderingen. Kartet oppdateres av administrator etter hvert som nye spor dukker opp.
+              <small className="map-disclaimer"><strong>PS:</strong> Ingen områder kan bekreftes eller utelukkes med 100 % sikkerhet. Vurderingene bygger på en samlet tolkning av blant annet vær, vindretning, terreng, avstander og tilgjengelige spor, og kan endres når ny informasjon dukker opp.</small>
+            </p>
           </div>
 
           <div className="map-app">
