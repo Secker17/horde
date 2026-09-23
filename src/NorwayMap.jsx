@@ -6,7 +6,16 @@ const COLORS = {
   likely: '#d99b43',
   unsure: '#769f89',
   unlikely: '#536059',
+  excluded: '#dc4c4c',
   none: '#24352c',
+}
+
+const LABELS = {
+  likely: 'Sannsynlig',
+  unsure: 'Usikkert',
+  unlikely: 'Lite sannsynlig',
+  excluded: 'Utelukket',
+  none: 'Ikke vurdert',
 }
 
 // D3's spherical path renderer uses the opposite polygon winding convention
@@ -84,7 +93,7 @@ export default function NorwayMap({ data, statuses, selected, onSelect, mode }) 
               <path
                 key={key}
                 d={item.d}
-                fill={COLORS[status]}
+                fill={COLORS[status] || COLORS.none}
                 className={`map-region ${isSelected ? 'selected' : ''}`}
                 onClick={(event) => {
                   if (suppressClick.current) {
@@ -102,7 +111,7 @@ export default function NorwayMap({ data, statuses, selected, onSelect, mode }) 
                   }
                 }}
               >
-                <title>{item.name} — {status === 'none' ? 'Ikke vurdert' : status === 'likely' ? 'Sannsynlig' : status === 'unsure' ? 'Usikkert' : 'Lite sannsynlig'}</title>
+                <title>{item.name} — {LABELS[status] || LABELS.none}</title>
               </path>
             )
           })}

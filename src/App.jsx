@@ -7,12 +7,16 @@ import Comments from './Comments'
 import ConfirmedInfo from './ConfirmedInfo'
 import LoginModal from './LoginModal'
 import { adminUid, auth, db, firebaseReady } from './firebase'
+import './excluded-status.css'
 
 const STATUS = [
   { id: 'likely', label: 'Sannsynlig', note: 'Sterke spor', color: '#d99b43' },
   { id: 'unsure', label: 'Usikkert', note: 'Må undersøkes', color: '#769f89' },
   { id: 'unlikely', label: 'Lite sannsynlig', note: 'Svake spor', color: '#536059' },
+  { id: 'excluded', label: 'Utelukket', note: 'Området er avkreftet', color: '#dc4c4c' },
 ]
+
+const STATUS_LABELS = Object.fromEntries(STATUS.map((item) => [item.id, item.label]))
 
 const sampleComments = [
   { id: 'welcome', name: 'Horde-teamet', authorUid: 'horde-teamet', area: 'Hele Norge', message: 'Velkommen! Kommentarfeltet oppdateres direkte når nye meldinger blir publisert.', timeLabel: 'Festet kommentar' },
@@ -344,8 +348,8 @@ export default function App() {
               <aside className="map-panel">
                 {selected ? (
                   <div className="selected-area">
-                    <span className="eyebrow">VALGT {selected.type === 'county' ? 'FYLKE' : 'KOMMUNE'}</span><h3>{selected.name}</h3><div className={`current-status ${selected.status}`}><span />{selected.status === 'likely' ? 'Sannsynlig' : selected.status === 'unsure' ? 'Usikkert' : selected.status === 'unlikely' ? 'Lite sannsynlig' : 'Ikke vurdert'}</div>
-                    {isAdmin ? <div className="admin-editor"><small>ENDRE VURDERING</small>{STATUS.map((item) => <button key={item.id} onClick={() => updateStatus(item.id)} className={selected.status === item.id ? 'active' : ''}><span style={{ background: item.color }} /> <div><strong>{item.label}</strong><small>{item.note}</small></div>{selected.status === item.id && <ShieldCheck size={16} />}</button>)}<button onClick={() => updateStatus('none')} className={selected.status === 'none' ? 'active' : ''}><span className="status-none-dot" /><div><strong>Ikke vurdert</strong><small>Fjern vurderingen</small></div>{selected.status === 'none' && <ShieldCheck size={16} />}</button>{selected.type === 'county' && <p className="county-sync-note">Endringen gjelder også alle kommunene i fylket.</p>}{mapError && <p className="map-error">{mapError}</p>}</div> : <p className="selection-help">Bare administrator kan endre kartet. Har du et spor? Del det i kommentarfeltet under.</p>}
+                    <span className="eyebrow">VALGT {selected.type === 'county' ? 'FYLKE' : 'KOMMUNE'}</span><h3>{selected.name}</h3><div className={`current-status ${selected.status}`}><span />{STATUS_LABELS[selected.status] || 'Ikke vurdert'}</div>
+                    {isAdmin ? <div className="admin-editor"><small>ENDRE VURDERING</small>{STATUS.map((item) => <button key={item.id} onClick={() => updateStatus(item.id)} className={`${selected.status === item.id ? 'active' : ''} status-option-${item.id}`}><span style={{ background: item.color }} /> <div><strong>{item.label}</strong><small>{item.note}</small></div>{selected.status === item.id && <ShieldCheck size={16} />}</button>)}<button onClick={() => updateStatus('none')} className={selected.status === 'none' ? 'active' : ''}><span className="status-none-dot" /><div><strong>Ikke vurdert</strong><small>Fjern vurderingen</small></div>{selected.status === 'none' && <ShieldCheck size={16} />}</button>{selected.type === 'county' && <p className="county-sync-note">Endringen gjelder også alle kommunene i fylket.</p>}{mapError && <p className="map-error">{mapError}</p>}</div> : <p className="selection-help">Bare administrator kan endre kartet. Har du et spor? Del det i kommentarfeltet under.</p>}
                     <a href="#fellesskap" className="panel-link">Kommenter dette området <ChevronRight size={15} /></a>
                   </div>
                 ) : (
