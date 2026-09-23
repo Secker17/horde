@@ -26,3 +26,26 @@
 .map-disclaimer strong {
   color: #c7a66c;
 }
+
+.data-source-button {
+  width: fit-content;
+  margin-top: 12px;
+  padding: 10px 13px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid rgba(217, 155, 67, 0.42);
+  background: linear-gradient(135deg, rgba(217, 155, 67, 0.13), rgba(217, 155, 67, 0.04));
+  color: #e2c28d;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  transition: border-color 0.2s, background 0.2s, color 0.2s, transform 0.2s;
+}
+
+.data-source-button:hover {
+  border-color: rgba(217, 155, 67, 0.82);
+  background: rgba(217, 155, 67, 0.16);
+  color: #f5d8a7;
+  transform: translateY(-1px);
+}

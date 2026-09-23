@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { onAuthStateChanged, signInAnonymously, signInWithEmailAndPassword, signOut } from 'firebase/auth'
 import { addDoc, collection, deleteDoc, doc, getDoc, getDocs, onSnapshot, orderBy, query, serverTimestamp, setDoc, Timestamp, where, writeBatch } from 'firebase/firestore'
-import { ChevronRight, Compass, Info, LockKeyhole, LogOut, Map, Menu, Mountain, Search, ShieldCheck, UsersRound, X } from 'lucide-react'
+import { ChevronRight, Compass, ExternalLink, Info, LockKeyhole, LogOut, Map, Menu, Mountain, Search, ShieldCheck, UsersRound, X } from 'lucide-react'
 import NorwayMap from './NorwayMap'
 import Comments from './Comments'
 import ConfirmedInfo from './ConfirmedInfo'
@@ -338,6 +338,7 @@ export default function App() {
             <p>
               Velg et område for å se vurderingen. Kartet oppdateres av administrator etter hvert som nye spor dukker opp.
               <small className="map-disclaimer"><strong>PS:</strong> Ingen områder kan bekreftes eller utelukkes med 100 % sikkerhet. Vurderingene bygger på en samlet tolkning av blant annet vær, vindretning, terreng, avstander og tilgjengelige spor, og kan endres når ny informasjon dukker opp.</small>
+              <a className="data-source-button" href="https://default.no" target="_blank" rel="noreferrer">Se Default.no for data <ExternalLink size={14} /></a>
             </p>
           </div>
 
